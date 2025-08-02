@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.1.3
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 31, 2025 at 02:31 PM
--- Server version: 10.4.24-MariaDB
--- PHP Version: 7.4.28
+-- Generation Time: Aug 02, 2025 at 07:39 PM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -38,7 +38,7 @@ CREATE TABLE `tbl_modules` (
   `status` enum('0','1') NOT NULL DEFAULT '1',
   `created_on` datetime NOT NULL,
   `updated_on` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -57,11 +57,12 @@ CREATE TABLE `tbl_module_fields` (
   `dependent_module_field_id` int(11) DEFAULT NULL,
   `dependent_module_field_column_name` varchar(100) DEFAULT NULL,
   `is_unique` varchar(5) DEFAULT NULL,
+  `is_required` varchar(5) DEFAULT NULL,
   `is_deleted` enum('0','1') NOT NULL DEFAULT '0',
   `status` enum('0','1') NOT NULL DEFAULT '1',
   `created_on` datetime NOT NULL,
   `updated_on` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Indexes for dumped tables
