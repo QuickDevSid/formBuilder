@@ -24,6 +24,9 @@
             $this->get_controller_file($module_folder, $module_name_used, $model_name, $controller_name, $redirect_url, $fields);
             $this->get_ajax_controller_file($module_folder, $module_name_used, $model_name, $created_table_name, $ajax_controller_name, $redirect_url, $fields);
             $this->get_route_file($module_folder, $module_name_used, $controller_name);
+            $this->get_form_view_file($module_folder, $module_name_used, $fields);
+            // $this->get_list_view_file($module_folder, $module_name_used, $fields);
+            // $this->get_js_file($module_folder, $module_name_used, $ajax_controller_name, $fields);
 
             $data = array(
                 'project'           =>  null,
@@ -106,6 +109,171 @@
         }else{
             return false;
         }
+    }
+
+    public function get_form_view_file($folder, $module_name_used, $fields){
+        $form_fields_html = '';
+        
+        foreach ($fields as $field) {
+            $label = ucfirst(str_replace('_', ' ', $field['label_name']));
+            $column = $field['label_name'];
+            $data_type = $field['data_type'];
+            $required = ($field['is_required'] ?? false) ? '<b class="require">*</b>' : '';
+            $error_id = "{$column}_error";
+
+            switch ($data_type) {
+                case 'text':
+                case 'email':
+                case 'password':
+                case 'number':
+                case 'url':
+                case 'mobile':
+                case 'hidden':
+                    $form_fields_html .= <<<EOD
+        <div class="form-group col-lg-4 col-md-4 col-sm-6 col-xs-12">
+            <label>{$label} {$required}</label>
+            <input type="{$data_type}" class="form-control" name="{$column}" id="{$column}" value="<?php if(!empty(\$single)){ echo \$single->{$column}; }?>" placeholder="Enter {$label}">
+            <div class="error" id="{$error_id}"></div>
+        </div>
+
+    EOD;
+                    break;
+
+                case 'date':
+                case 'time':
+                case 'datetime':
+                    $picker_class = $data_type === 'date' ? 'datepicker' : ($data_type === 'time' ? 'timepicker' : 'datetimepicker');
+                    $form_fields_html .= <<<EOD
+        <div class="form-group col-lg-4 col-md-4 col-sm-6 col-xs-12">
+            <label>{$label} {$required}</label>
+            <input type="text" class="form-control {$picker_class}" name="{$column}" id="{$column}" value="<?php if(!empty(\$single)){ echo \$single->{$column}; }?>" placeholder="Select {$label}">
+            <div class="error" id="{$error_id}"></div>
+        </div>
+
+    EOD;
+                    break;
+
+                case 'checkbox':
+                    $form_fields_html .= <<<EOD
+        <div class="form-group col-lg-4 col-md-4 col-sm-6 col-xs-12">
+            <label><input type="checkbox" name="{$column}" id="{$column}" <?php if(!empty(\$single) && \$single->{$column}){ echo 'checked'; } ?>> {$label}</label>
+            <div class="error" id="{$error_id}"></div>
+        </div>
+
+    EOD;
+                    break;
+
+                case 'radio':
+                    $form_fields_html .= <<<EOD
+        <div class="form-group col-lg-4 col-md-4 col-sm-6 col-xs-12">
+            <label>{$label} {$required}</label><br>
+            <label><input type="radio" name="{$column}" value="1" <?php if(!empty(\$single) && \$single->{$column} == 1){ echo 'checked'; } ?>> Yes</label>
+            <label><input type="radio" name="{$column}" value="0" <?php if(!empty(\$single) && \$single->{$column} == 0){ echo 'checked'; } ?>> No</label>
+            <div class="error" id="{$error_id}"></div>
+        </div>
+
+    EOD;
+                    break;
+
+                case 'file':
+                    $form_fields_html .= <<<EOD
+        <div class="form-group col-lg-4 col-md-4 col-sm-6 col-xs-12">
+            <label>{$label} {$required}</label>
+            <input type="file" class="form-control" name="{$column}" id="{$column}">
+            <?php if(!empty(\$single) && !empty(\$single->{$column})){ ?>
+                <a href="<?php echo base_url(\$single->{$column}); ?>" target="_blank">View File</a>
+            <?php } ?>
+            <div class="error" id="{$error_id}"></div>
+        </div>
+
+    EOD;
+                    break;
+
+                case 'dropdown':
+                    $form_fields_html .= <<<EOD
+        <div class="form-group col-lg-4 col-md-4 col-sm-6 col-xs-12">
+            <label>{$label} {$required}</label>
+            <select class="form-control chosen-select" name="{$column}" id="{$column}">
+                <option value="">Select {$label}</option>
+                <!-- Add your options dynamically -->
+            </select>
+            <div class="error" id="{$error_id}"></div>
+        </div>
+
+    EOD;
+                    break;
+
+                case 'textarea':
+                    $form_fields_html .= <<<EOD
+        <div class="form-group col-lg-4 col-md-4 col-sm-6 col-xs-12">
+            <label>{$label} {$required}</label>
+            <textarea class="form-control" name="{$column}" id="{$column}" placeholder="Enter {$label}"><?php if(!empty(\$single)){ echo \$single->{$column}; }?></textarea>
+            <div class="error" id="{$error_id}"></div>
+        </div>
+
+    EOD;
+                    break;
+
+                case 'color':
+                case 'range':
+                    $form_fields_html .= <<<EOD
+        <div class="form-group col-lg-4 col-md-4 col-sm-6 col-xs-12">
+            <label>{$label} {$required}</label>
+            <input type="{$data_type}" class="form-control" name="{$column}" id="{$column}" value="<?php if(!empty(\$single)){ echo \$single->{$column}; }?>">
+            <div class="error" id="{$error_id}"></div>
+        </div>
+
+    EOD;
+                    break;
+            }
+        }
+
+        $html = <<<EOD
+    <div class="right_col" role="main">
+        <div class="">
+            <div class="page-title">
+                <div class="title_left">
+                    <h3>Add {$module_name_used}</h3>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                    <div class="x_panel">
+                        <div class="x_content">
+                            <form method="post" name="master_form" id="master_form" enctype="multipart/form-data">
+                                <div class="row">
+                                    {$form_fields_html}
+                                </div>
+                                <div class="row">
+                                    <div class="form-group col-md-12 col-sm-12 col-xs-12">
+                                        <button style="margin-top: 10px;" type="submit" id="submit" class="btn btn-success">Submit</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>  
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- External JS Includes -->
+    <script src="<?= base_url('assets/js/modules/{$module_name_used}_form_custom_js.js') ?>"></script>
+    EOD;
+        // echo '<pre>' . htmlspecialchars($html) . '</pre>'; exit;
+
+        $file_name = $module_name_used . '.php';
+        $file_path = FCPATH . $folder . $file_name;
+        file_put_contents($file_path, $html);
+        return $folder . $file_name;
+    }
+
+    public function get_list_view_file(){
+
+    }
+
+    public function get_js_file(){
+
     }
 
     public function get_route_file($folder, $module_name_used, $controller_name) {
