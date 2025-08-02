@@ -7,8 +7,12 @@
             $module_name = $this->input->post('module_name');
             $module_name_used = strtolower(str_replace(' ', '_', $this->input->post('module_name')));
             $created_table_name = 'tbl_' . $module_name_used;
+            $model_name= ucfirst($module_name_used) . '_model';
+            $controller_name= '';
+            $ajax_controller_name= '';
 
-            $sql_file_path = $this->get_sql_file($created_table_name, $fields);
+            $generated_files[] = $this->get_sql_file($created_table_name, $fields);
+            $generated_files[] = $this->get_model_file($module_name_used, $model_name, $created_table_name, $fields);
 
             $data = array(
                 'project'           =>  null,
@@ -20,7 +24,6 @@
             $this->db->insert('tbl_modules',$data);
             $module_creation_id = $this->db->insert_id();
 
-            $generated_files = null;
             foreach($fields as $field){
                 $this->db->where('is_deleted', '0');
                 $this->db->where('id', $field['dependent_module']);
@@ -49,7 +52,7 @@
             }
             
             $data = array(
-                'generated_files'   =>  $sql_file_path
+                'generated_files'   =>  !empty($generated_files) ? implode('@@@',$generated_files) : null
             );
             $this->db->where('id', $module_creation_id);
             $this->db->update('tbl_modules',$data);
@@ -147,6 +150,145 @@
         return $path;
     }
 
+    public function get_model_file($module_name_used, $model_name, $created_table_name, $fields){
+        $dataFields = [];
+        $searchableFields = [];
+        $first = true;
+        foreach ($fields as $field) {
+            $column_name = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
+            $label_name = $field['label_name'];
+            $dataFields[] = "            '$column_name' => \$this->input->post('$column_name')";
+
+            if (in_array(strtolower($field['data_type']), ['text', 'textarea', 'email'])) {
+                if ($first) {
+                    $searchableFields[] = "                \$this->db->like('$created_table_name.$column_name', \$search);";
+                    $first = false;
+                } else {
+                    $searchableFields[] = "                \$this->db->or_like('$created_table_name.$column_name', \$search);";
+                }
+            }
+        }
+        $dataString = implode(",\n", $dataFields);
+
+        $uniqueFunctions = '';
+        foreach ($fields as $field) {
+            if (strtolower($field['is_unique']) === 'yes') {
+                $column_name = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
+                $uniqueFunctions .= <<<EOD
+
+        public function get_unique_{$column_name}(){
+            \$this->db->where('$column_name', \$this->input->post('$column_name'));
+            if(\$this->input->post('id') != "0" && \$this->input->post('id') != ""){
+                \$this->db->where('id !=', \$this->input->post('id'));
+            }
+            \$this->db->where('is_deleted', '0');
+            \$result = \$this->db->get('$created_table_name');
+            echo \$result->num_rows();
+        }
+    EOD;
+            }
+        }
+
+        $searchCondition = '';
+        if (!empty($searchableFields)) {
+            $searchCondition = "\n        if (\$search != \"\") {\n            \$this->db->group_start();\n" .
+                implode("\n", $searchableFields) .
+                "\n            \$this->db->group_end();\n        }";
+        }
+
+        $model = <<<EOD
+    <?php
+    defined('BASEPATH') OR exit('No direct script access allowed');
+
+    class $model_name extends CI_Model {
+
+        public function add_$module_name_used(){
+            \$data = array(
+    $dataString
+            );
+
+            if(\$this->input->post('id') == ""){
+                \$date = array(
+                    'created_on' => date("Y-m-d H:i:s")
+                );
+                \$new_arr = array_merge(\$data, \$date);
+                \$this->db->insert('$created_table_name', \$new_arr);
+                return 0;
+            } else {
+                \$this->db->where('id', \$this->input->post('id'));
+                \$this->db->update('$created_table_name', \$data);
+                return 1;
+            }
+        }
+
+        public function get_all_$module_name_used(){
+            \$this->db->where('is_deleted', '0');
+            \$this->db->order_by('id', 'DESC');
+            \$result = \$this->db->get('$created_table_name');
+            return \$result->result();
+        }
+
+        public function get_single_$module_name_used(){
+            \$this->db->where('is_deleted', '0');
+            \$this->db->where('id', \$this->uri->segment(2));
+            \$result = \$this->db->get('$created_table_name');
+            return \$result->row();
+        }
+    $uniqueFunctions
+
+        public function get_all_{$module_name_used}_ajax(\$length, \$start, \$search){
+            \$this->db->where('$created_table_name.is_deleted', '0');
+    EOD;
+
+        foreach ($fields as $field) {
+            $column_name = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
+            $model .= "\n        if (\$this->input->post('$column_name') != \"\") {\n            \$this->db->where('$created_table_name.$column_name', \$this->input->post('$column_name'));\n        }";
+        }
+
+        $model .= $searchCondition;
+
+        $model .= <<<EOD
+
+            \$this->db->order_by('$created_table_name.id', 'DESC');
+            \$this->db->limit(\$length, \$start);
+            \$result = \$this->db->get('$created_table_name');
+            return \$result->result();
+        }
+
+        public function get_all_{$module_name_used}_count_ajax(\$search){
+            \$this->db->where('$created_table_name.is_deleted', '0');
+    EOD;
+
+        foreach ($fields as $field) {
+            $column_name = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
+            $model .= "\n        if (\$this->input->post('$column_name') != \"\") {\n            \$this->db->where('$created_table_name.$column_name', \$this->input->post('$column_name'));\n        }";
+        }
+
+        $model .= $searchCondition;
+
+        $model .= <<<EOD
+
+            \$result = \$this->db->get('$created_table_name');
+            return \$result->num_rows();
+        }
+
+    }
+    EOD;
+
+        // echo '<pre>' . htmlspecialchars($model) . '</pre>'; exit;
+
+        $path = 'module_files/model/';
+        $model_dir = FCPATH . $path;
+        if (!is_dir($model_dir)) {
+            mkdir($model_dir, 0777, true);
+        }
+        $file_name = $model_name . '.php';
+        $file_path = $model_dir . $file_name;
+        $path = $path . $file_name;
+
+        file_put_contents($file_path, $model);
+        return $path;
+    }
 
     private function map_data_type($input_type, $length){
         switch ($input_type) {
