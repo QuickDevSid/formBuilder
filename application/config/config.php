@@ -26,8 +26,8 @@ date_default_timezone_set('Asia/Kolkata');
 */
 
 
-// $config['base_url'] = 'http://127.0.0.1/form-builder';
-$config['base_url'] = 'http://127.0.0.1/formBuilder';
+$config['base_url'] = 'http://127.0.0.1/form-builder';
+// $config['base_url'] = 'http://127.0.0.1/formBuilder';
 /*
 |--------------------------------------------------------------------------
 | Index File
