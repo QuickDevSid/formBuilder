@@ -260,10 +260,16 @@
     <!-- External JS Includes -->
     <script src="<?= base_url('assets/js/modules/{$module_name_used}_form_custom_js.js') ?>"></script>
     EOD;
-        // echo '<pre>' . htmlspecialchars($html) . '</pre>'; exit;
 
-        $file_name = $module_name_used . '.php';
-        $file_path = FCPATH . $folder . $file_name;
+        $module_folder = $folder . '/views/';
+        $full_module_path = FCPATH . $module_folder;
+
+        if (!is_dir($full_module_path)) {
+            mkdir($full_module_path, 0777, true);
+        }
+
+        $file_name = $module_name_used . '_form.php';
+        $file_path = FCPATH . $module_folder . $file_name;
         file_put_contents($file_path, $html);
         return $folder . $file_name;
     }
@@ -286,8 +292,15 @@
             \$route['{$module_name_used}_list'] = '{$controller_name}/{$module_name_used}_list';
             EOD;
 
+        $module_folder = $folder . '/routes/';
+        $full_module_path = FCPATH . $module_folder;
+
+        if (!is_dir($full_module_path)) {
+            mkdir($full_module_path, 0777, true);
+        }
+
         $file_name = 'routes.php';
-        $file_path = FCPATH . $folder . $file_name;
+        $file_path = FCPATH . $module_folder . $file_name;
         file_put_contents($file_path, $content);
         return $folder . $file_name;
     }
@@ -417,8 +430,15 @@
         }
         EOD;
 
+        $module_folder = $folder . '/controllers/';
+        $full_module_path = FCPATH . $module_folder;
+
+        if (!is_dir($full_module_path)) {
+            mkdir($full_module_path, 0777, true);
+        }
+
         $file_name = $ajax_controller_name . '.php';
-        $file_path = FCPATH . $folder . $file_name;
+        $file_path = FCPATH . $module_folder . $file_name;
         file_put_contents($file_path, $controller);
         return $folder . $file_name;
     }
@@ -473,8 +493,15 @@
     }
     EOD;
 
+        $module_folder = $folder . '/controllers/';
+        $full_module_path = FCPATH . $module_folder;
+
+        if (!is_dir($full_module_path)) {
+            mkdir($full_module_path, 0777, true);
+        }
+
         $file_name = $controller_name . '.php';
-        $file_path = FCPATH . $folder . $file_name;
+        $file_path = FCPATH . $module_folder . $file_name;
         file_put_contents($file_path, $controller);
         return $folder . $file_name;
     }
@@ -516,10 +543,17 @@
         $sql .= "  `created_on` DATETIME DEFAULT CURRENT_TIMESTAMP,\n";
         $sql .= "  `updated_on` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,\n";
         $sql .= "  PRIMARY KEY (`id`)\n";
-        $sql .= ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n";     
+        $sql .= ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;\n";   
 
-        $file_name = $table_name . '.php';
-        $file_path = FCPATH . $folder . $file_name;
+        $module_folder = $folder . '/database/';
+        $full_module_path = FCPATH . $module_folder;
+
+        if (!is_dir($full_module_path)) {
+            mkdir($full_module_path, 0777, true);
+        }
+
+        $file_name = $table_name . '.sql';
+        $file_path = FCPATH . $module_folder . $file_name;
         file_put_contents($file_path, $sql);
         return $folder . $file_name;
     }
@@ -648,9 +682,16 @@
 
     }
     EOD;
-         
+
+        $module_folder = $folder . '/model/';
+        $full_module_path = FCPATH . $module_folder;
+
+        if (!is_dir($full_module_path)) {
+            mkdir($full_module_path, 0777, true);
+        }
+
         $file_name = $model_name . '.php';
-        $file_path = FCPATH . $folder . $file_name;
+        $file_path = FCPATH . $module_folder . $file_name;
         file_put_contents($file_path, $model);
         return $folder . $file_name;
     }
@@ -686,4 +727,47 @@
         }
     }
 
+	public function get_created_modules_ajx($length, $start, $search){
+		$this->db->select('tbl_modules.*');		
+		$this->db->join('tbl_module_fields','tbl_modules.id = tbl_module_fields.module_creation_id','left');
+        
+		if($search !=""){
+            $this->db->group_start();
+			$this->db->or_like('tbl_modules.module_name',$search);
+			$this->db->or_like('tbl_modules.description',$search);
+            $this->db->group_end();
+		}	
+
+        if($this->input->post('project_id') != ''){
+            $this->db->where('tbl_modules.project_id',$this->input->post('project_id'));
+        }	
+	
+        $this->db->where('tbl_modules.is_deleted','0');
+		$this->db->order_by('tbl_modules.id','DESC');
+		$this->db->group_by('tbl_modules.id','DESC');
+		$this->db->limit($length,$start);
+		$result = $this->db->get('tbl_modules');
+		return $result->result();		
+	}
+	public function get_created_modules_ajx_count($search){
+		$this->db->select('tbl_modules.*');		
+		$this->db->join('tbl_module_fields','tbl_modules.id = tbl_module_fields.module_creation_id','left');
+
+		if($search !=""){
+            $this->db->group_start();
+			$this->db->or_like('tbl_modules.module_name',$search);
+			$this->db->or_like('tbl_modules.description',$search);
+            $this->db->group_end();
+		}	
+
+        if($this->input->post('project_id') != ''){
+            $this->db->where('tbl_modules.project_id',$this->input->post('project_id'));
+        }	
+	
+        $this->db->where('tbl_modules.is_deleted','0');
+		$this->db->order_by('tbl_modules.id','DESC');
+		$this->db->group_by('tbl_modules.id','DESC');
+		$result = $this->db->get('tbl_modules');
+		return $result->num_rows();		
+	}
 }

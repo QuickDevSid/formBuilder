@@ -13,7 +13,7 @@
         <div class="card p-4 mb-4">
             <div class="client-header">
                 <div class="client-title">
-                    <h3 class="mb-3">Form Builder</h3>
+                    <h3 class="mb-3">Create Module</h3>
                 </div>
             </div>
             <div class="client-body p-3">

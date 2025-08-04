@@ -31,22 +31,9 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
         <script src="<?= base_url() ?>admin_assets/js/custom.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/chosen/1.8.7/chosen.jquery.min.js"></script>
+        <script src="https://cdn.datatables.net/2.3.1/js/dataTables.min.js"></script>
         <script>
             $(document).ready(function() {
-                flatpickr(".daterange", {
-                    mode: "range",
-                    dateFormat: "d-m-Y",
-                    altInput: true,
-                    altFormat: "d-m-Y",
-                    allowInput: true,
-                    placeholder: "Select Date Range"
-                });
-
-                $('.datepicker').flatpickr({
-                    placeholder: "Select Date",
-                    dateFormat: "d-m-Y",
-                });
-
                 $('.add-client-btn').click(function() {
                     $('#client-sidebar').toggleClass('show');
                 });

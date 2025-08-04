@@ -17,11 +17,15 @@ class Form_builder_controller extends CI_Controller
             $res = $this->Form_builder_model->set_module();
             if ($res) {
                 $this->session->set_flashdata('success', 'Module Created Successfully !');
-                redirect('creation');
+                redirect('list');
             } else {
                 $this->session->set_flashdata('message', 'Fields Not Found !');
                 redirect('creation');
             }
         }
+	}
+
+	public function list(){
+		$this->load->view('list');
 	}
 }
