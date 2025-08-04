@@ -13,7 +13,7 @@
         <div class="card p-4 mb-4">
             <div class="client-header">
                 <div class="client-title">
-                    <h3 class="mb-3">Module List</h3>
+                    <h3 class="mb-3">Modules List</h3>
                 </div>
             </div>
             <div class="client-body p-3">
@@ -24,6 +24,7 @@
                             <th>Module Name</th>
                             <th>Created On</th>
                             <th>Files</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody>

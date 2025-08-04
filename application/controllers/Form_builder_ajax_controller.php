@@ -42,6 +42,7 @@ class Form_builder_ajax_controller extends CI_Controller
                 $sub_array[] = $print->module_name;
                 $sub_array[] = date('d M, Y h:i A',strtotime($print->created_on));
                 $sub_array[] = '<a class="btn btn-sm" href="' . base_url() . '' . $print->generated_files . '" download title="Download PHP CI3 Files"><i class="fa fa-download"></i></a>';
+                $sub_array[] = '<a class="btn btn-sm" onclick="return confirm(\'Are you sure to delete this module?\');" href="' . base_url() . 'delete/' . base64_encode($print->id) . '" title="Delete Module"><i class="fa fa-trash"></i></a>';
                 
                 $data[] = $sub_array; 
             }

@@ -13,7 +13,7 @@
         <div class="card p-4 mb-4">
             <div class="client-header">
                 <div class="client-title">
-                    <h3 class="mb-3">Create Module</h3>
+                    <h3 class="mb-3">Module Creation</h3>
                 </div>
             </div>
             <div class="client-body p-3">
@@ -226,7 +226,11 @@
             },
             unhighlight: function (element) {
                 $(element).removeClass('is-invalid');
-            }
+            },
+            submitHandler: function (form) {
+                form.submit();
+                $('#submit_btn').remove();
+            }            
         });
 
         function initChosen() {

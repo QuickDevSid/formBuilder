@@ -19,14 +19,14 @@
                 mkdir($full_module_path, 0777, true);
             }
 
-            $this->get_sql_file($module_folder, $created_table_name, $fields);
-            $this->get_model_file($module_folder, $module_name_used, $model_name, $created_table_name, $fields);
-            $this->get_controller_file($module_folder, $module_name_used, $model_name, $controller_name, $redirect_url, $fields);
-            $this->get_ajax_controller_file($module_folder, $module_name_used, $model_name, $created_table_name, $ajax_controller_name, $redirect_url, $fields);
-            $this->get_route_file($module_folder, $module_name_used, $controller_name);
-            $this->get_form_view_file($module_folder, $module_name_used, $fields);
-            // $this->get_list_view_file($module_folder, $module_name_used, $fields);
-            // $this->get_js_file($module_folder, $module_name_used, $ajax_controller_name, $fields);
+            $this->create_sql_file($module_folder, $created_table_name, $fields);
+            $this->create_model_file($module_folder, $module_name_used, $model_name, $created_table_name, $fields);
+            $this->create_controller_file($module_folder, $module_name_used, $model_name, $controller_name, $redirect_url, $fields);
+            $this->create_ajax_controller_file($module_folder, $module_name_used, $model_name, $created_table_name, $ajax_controller_name, $redirect_url, $fields);
+            $this->create_route_file($module_folder, $module_name_used, $controller_name);
+            $this->create_form_view_file($module_folder, $module_name_used, $fields);
+            $this->create_list_view_file($module_folder, $module_name_used, $fields);
+            $this->create_js_file($module_folder, $module_name_used, $ajax_controller_name, $fields);
 
             $data = array(
                 'project'           =>  null,
@@ -111,7 +111,7 @@
         }
     }
 
-    public function get_form_view_file($folder, $module_name_used, $fields){
+    public function create_form_view_file($folder, $module_name_used, $fields){
         $form_fields_html = '';
         
         foreach ($fields as $field) {
@@ -241,12 +241,13 @@
                     <div class="x_panel">
                         <div class="x_content">
                             <form method="post" name="master_form" id="master_form" enctype="multipart/form-data">
+                                <input type="hidden" name="hidden_id" id="hidden_id" value="<?php if(!empty(\$single)){ echo \$single->id; }?>">
                                 <div class="row">
                                     {$form_fields_html}
                                 </div>
                                 <div class="row">
                                     <div class="form-group col-md-12 col-sm-12 col-xs-12">
-                                        <button style="margin-top: 10px;" type="submit" id="submit" class="btn btn-success">Submit</button>
+                                        <button style="margin-top: 10px;" type="submit" id="{$module_name_used}_submit" class="btn btn-success">Submit</button>
                                     </div>
                                 </div>
                             </form>
@@ -258,10 +259,12 @@
     </div>
 
     <!-- External JS Includes -->
-    <script src="<?= base_url('assets/js/modules/{$module_name_used}_form_custom_js.js') ?>"></script>
     <script>
         var BASE_URL = '<?=base_url(); ?>';
+        var formElement = 'master_form';
+        vart submitBtn = '{$module_name_used}_submit';
     </script>
+    <script src="<?= base_url('assets/js/modules/{$module_name_used}_custom_js.js') ?>"></script>
     EOD;
 
         $module_folder = $folder . '/views/';
@@ -277,15 +280,246 @@
         return $folder . $file_name;
     }
 
-    public function get_list_view_file(){
+    public function create_list_view_file($folder, $module_name_used, $fields){
+        $export_columns = range(0, count($fields));
+        $export_columns_js_array = json_encode($export_columns);
 
+        $table_headers_html = '';
+        $table_columns_count = count($fields);
+
+        $sr_no_header = '<th>Sr. No.</th>';
+        $action_header = '<th>Action</th>';
+
+        foreach ($fields as $field) {
+            $label = ucfirst(str_replace('_', ' ', $field['label_name']));
+            $table_headers_html .= "<th>{$label}</th>\n";
+        }
+
+        $html = <<<EOD
+        <div class="right_col" role="main">
+            <div class="">
+                <div class="page-title">
+                    <div class="title_left">
+                        <h3>{$module_name_used} List</h3>
+                    </div>
+                </div>
+                <div class="clearfix"></div>
+                <div class="row">
+                    <div class="col-md-12 col-sm-12 col-xs-12">
+                        <div class="x_panel">
+                            <div class="x_content">
+                                <table class="table table-striped responsive-utilities jambo_table" style="width: 100%;" id="example">
+                                    <thead>
+                                        <tr>
+                                            {$sr_no_header}
+                                            {$table_headers_html}
+                                            {$action_header}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Data to be populated via AJAX or controller -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- External JS Includes -->
+        <script>
+            var BASE_URL = '<?=base_url(); ?>';
+            var tableElement = 'example';
+            var fileName = '{$module_name_used}-list';
+            var exportColumns = {$export_columns_js_array};
+        </script>
+        <script src="<?= base_url('assets/js/modules/{$module_name_used}_custom_js.js') ?>"></script>
+        EOD;
+
+        // echo '<pre>' . htmlspecialchars($html) . '</pre>'; exit;
+
+        $module_folder = $folder . '/views/';
+        $full_module_path = FCPATH . $module_folder;
+
+        if (!is_dir($full_module_path)) {
+            mkdir($full_module_path, 0777, true);
+        }
+
+        $file_name = $module_name_used . '_list.php';
+        $file_path = FCPATH . $module_folder . $file_name;
+        file_put_contents($file_path, $html);
+
+        return $folder . $file_name;
     }
 
-    public function get_js_file(){
+    public function create_js_file($folder, $module_name_used, $ajax_url_path, $fields){
+        $rules = [];
+        $messages = [];
+        $unique_checks_js = '';
 
+        foreach ($fields as $field) {
+            $label = ucfirst(str_replace('_', ' ', $field['label_name']));
+            $column = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
+            $data_type = strtolower($field['data_type']);
+
+            if (!empty($field['is_required']) && strtolower($field['is_required']) === 'yes') {
+                $rules[] = "            '{$column}': { required: true }";
+                $msg = ($data_type === 'dropdown' || $data_type === 'select') ?
+                    "Please select {$label}!" : "Please enter {$label}!";
+                $messages[] = "            '{$column}': { required: '{$msg}' }";
+            }
+
+            if (!empty($field['is_unique']) && strtolower($field['is_unique']) === 'yes') {
+                $unique_checks_js .= <<<EOD
+                    $('#{$column}').on('keyup change', function () {
+                        $.ajax({
+                            type: "POST",
+                            url: BASE_URL + "{$ajax_url_path}/get_unique_{$column}",
+                            data: {
+                                '{$column}': $('#{$column}').val(),
+                                id: $('#hidden_id').val() || ''
+                            },
+                            success: function (data) {
+                                if (data == "0") {
+                                    $('#{$column}_error').html('');
+                                    $('#submit').show();
+                                } else {
+                                    $('#{$column}_error').html('This {$label} is already added');
+                                    $('#submit').hide();
+                                }
+                            },
+                            error: function (jqXHR, textStatus, errorThrown) {
+                                console.log(textStatus, errorThrown);
+                            }
+                        });
+                    });
+                EOD;
+                }
+            }
+
+            $rules_js = implode(",\n", $rules);
+            $messages_js = implode(",\n", $messages);
+
+            $js = <<<EOD
+        $(document).ready(function () {
+            var oldExportAction = function (self, e, dt, button, config) {
+                if (button[0].className.indexOf('buttons-excel') >= 0) {
+                    if (\$.fn.dataTable.ext.buttons.excelHtml5.available(dt, config)) {
+                        \$.fn.dataTable.ext.buttons.excelHtml5.action.call(self, e, dt, button, config);
+                    } else {
+                        \$.fn.dataTable.ext.buttons.excelFlash.action.call(self, e, dt, button, config);
+                    }
+                } else if (button[0].className.indexOf('buttons-print') >= 0) {
+                    \$.fn.dataTable.ext.buttons.print.action(e, dt, button, config);
+                }
+            };
+
+            var newExportAction = function (e, dt, button, config) {
+                var self = this;
+                var oldStart = dt.settings()[0]._iDisplayStart;
+                dt.one('preXhr', function (e, s, data) {
+                    data.start = 0;
+                    data.length = 2147483647;
+                    dt.one('preDraw', function (e, settings) {
+                        oldExportAction(self, e, dt, button, config);
+                        dt.one('preXhr', function (e, s, data) {
+                            settings._iDisplayStart = oldStart;
+                            data.start = oldStart;
+                        });
+                        setTimeout(dt.ajax.reload, 0);
+                        return false;
+                    });
+                });
+                dt.ajax.reload();
+            };
+
+            // DataTable initialization
+            var table = $('#' + tableElement).DataTable({
+                lengthChange: true,
+                lengthMenu: [10, 25, 50, 100, 200],
+                searching: true,
+                responsive: true,
+                processing: true,
+                serverSide: true,
+                cache: false,
+                order: [],
+                columnDefs: [
+                    { orderable: false, targets: "_all" }
+                ],
+                buttons: [
+                    {
+                        extend: "excelHtml5",
+                        messageBottom: '',
+                        filename: fileName,
+                        exportOptions: {
+                            columns: exportColumns,
+                            modifier: {
+                                search: 'applied',
+                                order: 'applied'
+                            }
+                        },
+                        action: newExportAction
+                    }
+                ],
+                dom: "Blfrtip",
+                scrollX: true,
+                ajax: {
+                    url: BASE_URL + "{$ajax_url_path}/get_{$module_name_used}_data_ajx",
+                    type: "POST",
+                    data: function (d) {}
+                },
+                complete: function () {
+                    $('[data-toggle="tooltip"]').tooltip();
+                }
+            });
+
+            // Form validation
+            $('#' + formElement).validate({
+                ignore: [],
+                rules: {
+        {$rules_js}
+                },
+                messages: {
+        {$messages_js}
+                },
+                errorElement: 'span',
+                errorPlacement: function (error, element) {
+                    error.addClass('invalid-feedback');
+                    element.closest('.form-group').append(error);
+                },
+                highlight: function (element, errorClass, validClass) {
+                    $(element).addClass('is-invalid');
+                },
+                unhighlight: function (element, errorClass, validClass) {
+                    $(element).removeClass('is-invalid');
+                },
+                submitHandler: function (form) {
+                    form.submit();
+                    $('#' + submitBtn).remove();
+                }
+            });
+        });
+        {$unique_checks_js}
+        EOD;
+
+        // echo '<pre>' . htmlspecialchars($js) . '</pre>'; exit;
+
+        $js_folder = $folder . '/js/';
+        $full_js_path = FCPATH . $js_folder;
+
+        if (!is_dir($full_js_path)) {
+            mkdir($full_js_path, 0777, true);
+        }
+
+        $file_name = $module_name_used . '_custom_js.js';
+        $file_path = $full_js_path . $file_name;
+        file_put_contents($file_path, $js);
+
+        return $js_folder . $file_name;
     }
 
-    public function get_route_file($folder, $module_name_used, $controller_name) {
+    public function create_route_file($folder, $module_name_used, $controller_name) {
         $content = <<<EOD
             <?php defined("BASEPATH") or exit("No direct script access allowed");
 
@@ -342,10 +576,10 @@
         return $result;
     }
 
-    public function get_ajax_controller_file($folder, $module_name_used, $model_name, $table_name, $ajax_controller_name, $redirect_url, $fields) {
+    public function create_ajax_controller_file($folder, $module_name_used, $model_name, $table_name, $ajax_controller_name, $redirect_url, $fields) {
         $uniqueMethods = '';
         foreach ($fields as $field) {
-            if (strtolower($field['is_unique']) === 'yes') {
+            if (strtolower($field['is_unique']) === 'Yes') {
                 $column_name = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
                 $uniqueMethods .= <<<EOD
 
@@ -446,12 +680,12 @@
         return $folder . $file_name;
     }
 
-    public function get_controller_file($folder, $module_name_used, $model_name, $controller_name, $redirect_url, $fields) {
+    public function create_controller_file($folder, $module_name_used, $model_name, $controller_name, $redirect_url, $fields) {
         $validationRules = [];
         foreach ($fields as $field) {
             $column_name = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
             $label = ucfirst(trim($field['label_name']));
-            if (strtolower($field['is_required']) === 'yes') {
+            if (strtolower($field['is_required']) === 'Yes') {
                 $validationRules[] = "\$this->form_validation->set_rules('$column_name', '$label', 'required');";
             }
         }
@@ -509,7 +743,7 @@
         return $folder . $file_name;
     }
 
-    public function get_sql_file($folder, $table_name, $fields){
+    public function create_sql_file($folder, $table_name, $fields){
         $sql = "CREATE TABLE `$table_name` (\n";
         $sql .= "  `id` INT(11) NOT NULL AUTO_INCREMENT,\n";
 
@@ -561,7 +795,7 @@
         return $folder . $file_name;
     }
 
-    public function get_model_file($folder, $module_name_used, $model_name, $created_table_name, $fields){
+    public function create_model_file($folder, $module_name_used, $model_name, $created_table_name, $fields){
         $dataFields = [];
         $searchableFields = [];
         $first = true;
@@ -583,7 +817,7 @@
 
         $uniqueFunctions = '';
         foreach ($fields as $field) {
-            if (strtolower($field['is_unique']) === 'yes') {
+            if (strtolower($field['is_unique']) === 'Yes') {
                 $column_name = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
                 $uniqueFunctions .= <<<EOD
 
@@ -773,4 +1007,17 @@
 		$result = $this->db->get('tbl_modules');
 		return $result->num_rows();		
 	}
+
+    public function delete(){
+        $data = array(
+            'is_deleted' => '1'
+        );
+        $this->db->where('id', base64_decode($this->uri->segment(2)));
+        $this->db->update('tbl_modules', $data);
+
+        $this->db->where('module_creation_id', base64_decode($this->uri->segment(2)));
+        $this->db->update('tbl_module_fields', $data);
+
+        return true;
+    }
 }

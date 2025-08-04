@@ -28,4 +28,15 @@ class Form_builder_controller extends CI_Controller
 	public function list(){
 		$this->load->view('list');
 	}
+
+    public function delete(){
+        $res = $this->Form_builder_model->delete();
+        if ($res) {
+            $this->session->set_flashdata('success', 'Module deleted Successfully !');
+            redirect('list');
+        } else {
+            $this->session->set_flashdata('message', 'Module Not Found !');
+            redirect('creation');
+        }
+    }
 }

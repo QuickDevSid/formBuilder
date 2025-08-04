@@ -3,5 +3,6 @@
 $route["default_controller"]    =   "Form_builder_controller/index";
 $route["creation"]              =   "Form_builder_controller/creation";
 $route["list"]                  =   "Form_builder_controller/list";
+$route["delete/(:any)"]         =   "Form_builder_controller/delete/$1";
 $route["404_override"]          =   "";
 $route["translate_uri_dashes"]  =   FALSE;   
