@@ -1,0 +1,1 @@
+ALTER TABLE `tbl_module_fields` ADD `is_required` VARCHAR(5) NULL DEFAULT NULL AFTER `is_unique`;

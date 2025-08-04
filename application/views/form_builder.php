@@ -40,6 +40,7 @@
                                             <th>Label Name <b style="color:red;">*</b></th>
                                             <th>Field Type <b style="color:red;">*</b></th>
                                             <th>Length <b style="color:red;">*</b></th>
+                                            <th>Is Required? <b style="color:red;">*</b></th>
                                             <th>Handle Unique? <b style="color:red;">*</b></th>
                                             <th>Dependent Module</th>
                                             <th>Dependent Module Field</th>
@@ -113,6 +114,13 @@
                     <input type="number" name="fields[${index}][length]" class="form-control length" min="1" required>
                 </td>
                 <td>
+                    <select name="fields[${index}][is_required]" class="form-control is_required chosen-select" required>
+                        <option value="">Select Option</option>
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                    </select>
+                </td>
+                <td>
                     <select name="fields[${index}][is_unique]" class="form-control is_unique chosen-select" required>
                         <option value="">Select Option</option>
                         <option value="Yes">Yes</option>
@@ -160,6 +168,13 @@
                     required: "Please Enter Length !",
                     number: "Must be number !",
                     min: "Min value is 1 !"
+                }
+            });
+
+            $(`select[name="fields[${fieldIndex}][is_required]"]`).rules("add", {
+                required: true,
+                messages: {
+                    required: "Please Select Option !"
                 }
             });
 
