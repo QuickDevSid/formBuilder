@@ -772,7 +772,7 @@
                 }
             }
 
-            $sql .= "  `$column_name` $type $unique$dependent_comment,\n";
+            $sql .= "  `$column_name` $type DEFAULT NULL $unique$dependent_comment,\n";
         }
 
         $sql .= "  `status` ENUM('0','1') DEFAULT '1',\n";
