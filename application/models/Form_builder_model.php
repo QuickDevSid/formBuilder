@@ -259,6 +259,9 @@
 
     <!-- External JS Includes -->
     <script src="<?= base_url('assets/js/modules/{$module_name_used}_form_custom_js.js') ?>"></script>
+    <script>
+        var BASE_URL = '<?=base_url(); ?>';
+    </script>
     EOD;
 
         $module_folder = $folder . '/views/';
