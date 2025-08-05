@@ -105,8 +105,9 @@
                         <option value="url">URL</option>
                         <option value="color">Color Picker</option>
                         <option value="range">Range Slider</option>
-                        <option value="hidden">Hidden</option>
+                        <option disabled value="hidden">Hidden</option>
                         <option value="dropdown">Dropdown</option>
+                        <option value="dropdown-dependent">Dependent Dropdown</option>
                         <option value="textarea">Textarea</option>
                     </select>
                 </td>

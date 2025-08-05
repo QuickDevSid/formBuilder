@@ -24,7 +24,7 @@
             $this->create_controller_file($module_folder, $module_name_used, $model_name, $controller_name, $redirect_url, $fields);
             $this->create_ajax_controller_file($module_folder, $module_name_used, $model_name, $created_table_name, $ajax_controller_name, $redirect_url, $fields);
             $this->create_route_file($module_folder, $module_name_used, $controller_name);
-            $this->create_form_view_file($module_folder, $module_name_used, $fields);
+            $this->create_form_view_file($module_folder, $model_name, $module_name_used, $fields);
             $this->create_list_view_file($module_folder, $module_name_used, $fields);
             $this->create_js_file($module_folder, $module_name_used, $ajax_controller_name, $fields);
 
@@ -111,12 +111,13 @@
         }
     }
 
-    public function create_form_view_file($folder, $module_name_used, $fields){
+    public function create_form_view_file($folder, $model_name, $module_name_used, $fields){
         $form_fields_html = '';
         
         foreach ($fields as $field) {
             $label = ucfirst(str_replace('_', ' ', $field['label_name']));
             $column = $field['label_name'];
+            $column = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
             $data_type = $field['data_type'];
             $required = ($field['is_required'] ?? false) ? '<b class="require">*</b>' : '';
             $error_id = "{$column}_error";
@@ -203,6 +204,39 @@
     EOD;
                     break;
 
+                case 'dropdown-dependent':
+        $related_module_id = $field['dependent_module'] ?? null;
+        $related_field_id = $field['dependent_module_field'] ?? null;
+
+        if (!empty($related_module_id) && !empty($related_field_id)) {
+            $ref_table = $this->get_table_name_by_module_id($related_module_id);
+            $ref_column = $this->get_column_name_by_field_id($related_field_id);
+
+            $form_fields_html .= <<<EOD
+                <div class="form-group col-lg-4 col-md-4 col-sm-6 col-xs-12">
+                    <label>{$label} {$required}</label>
+                    <select class="form-control chosen-select" name="{$column}" id="{$column}">
+                        <option value="">Select {$label}</option>
+                        <?php
+                            \$records = \$this->{$model_name}->get_dependent_data_all('{$ref_table}');
+                            if(!empty(\$records)){
+                                foreach(\$records as \$row){
+                                    ?>
+                                    <option value="<?=\$row->id; ?>" <?=!empty(\$single) && \$single->{$column} == \$row->id ? 'selected' : ''; ?>>
+                                        <?=\$row->{$ref_column}; ?>
+                                    </option>
+                                    <?php
+                                }
+                            }
+                        ?>
+                    </select>
+                    <div class="error" id="{$error_id}"></div>
+                </div>
+    EOD;
+        }
+                break;
+
+
                 case 'textarea':
                     $form_fields_html .= <<<EOD
         <div class="form-group col-lg-4 col-md-4 col-sm-6 col-xs-12">
@@ -266,6 +300,7 @@
     </script>
     <script src="<?= base_url('assets/js/modules/{$module_name_used}_custom_js.js') ?>"></script>
     EOD;
+        // echo '<pre>' . htmlspecialchars($html) . '</pre>'; exit;
 
         $module_folder = $folder . '/views/';
         $full_module_path = FCPATH . $module_folder;
@@ -336,7 +371,6 @@
         </script>
         <script src="<?= base_url('assets/js/modules/{$module_name_used}_custom_js.js') ?>"></script>
         EOD;
-
         // echo '<pre>' . htmlspecialchars($html) . '</pre>'; exit;
 
         $module_folder = $folder . '/views/';
@@ -502,7 +536,6 @@
         });
         {$unique_checks_js}
         EOD;
-
         // echo '<pre>' . htmlspecialchars($js) . '</pre>'; exit;
 
         $js_folder = $folder . '/js/';
@@ -579,14 +612,14 @@
     public function create_ajax_controller_file($folder, $module_name_used, $model_name, $table_name, $ajax_controller_name, $redirect_url, $fields) {
         $uniqueMethods = '';
         foreach ($fields as $field) {
-            if (strtolower($field['is_unique']) === 'Yes') {
+            if (strtolower($field['is_unique']) === 'yes') {
                 $column_name = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
                 $uniqueMethods .= <<<EOD
 
             public function get_unique_{$column_name}() {
                 \$this->{$model_name}->get_unique_{$column_name}();
             }
-        EOD;
+    EOD;
             }
         }
 
@@ -618,14 +651,27 @@
                     \$offset = (\$page - 1) * \$length + 1;
                     foreach(\$records as \$print){
                         \$sub_array = array();
-        EOD;
+    EOD;
 
-            foreach ($fields as $field) {
-                $column = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
-                $ajaxFunction .= "\n                \$sub_array[] = \$print->$column;";
+        foreach ($fields as $field) {
+            $column = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
+
+            $has_dependency = !empty($field['dependent_module']) && !empty($field['dependent_module_field']);
+
+            if ($has_dependency) {
+                $dep_module_id = $field['dependent_module'];
+                $dep_field_id = $field['dependent_module_field'];
+                $ref_table = $this->get_table_name_by_module_id($dep_module_id);
+                $ref_column = $this->get_column_name_by_field_id($dep_field_id);
+                $alias_column = "ref_{$column}_{$ref_column}";
+
+                $ajaxFunction .= "\n                    \$sub_array[] = isset(\$print->$alias_column) ? \$print->$alias_column : '';";
+            } else {
+                $ajaxFunction .= "\n                    \$sub_array[] = \$print->$column;";
             }
+        }
 
-            $ajaxFunction .= <<<EOD
+        $ajaxFunction .= <<<EOD
 
                         \$sub_array[] = '<span class="inline-action-btns">
                             <a href="' . base_url('{$redirect_url}/' . \$print->id) . '" class="edit-link" data-bs-toggle="tooltip" title="Edit">
@@ -636,6 +682,7 @@
                             </a>
                         </span>';
 
+                        \$data[] = \$sub_array;
                     }
                 }
 
@@ -650,22 +697,23 @@
                 echo json_encode(\$output);
                 exit();
             }
-        EOD;
+    EOD;
 
-            $controller = <<<EOD
-        <?php
-        defined('BASEPATH') OR exit('No direct script access allowed');
+        $controller = <<<EOD
+    <?php
+    defined('BASEPATH') OR exit('No direct script access allowed');
 
-        class $ajax_controller_name extends CI_Controller {
+    class $ajax_controller_name extends CI_Controller {
 
-            public function __construct(){
-                parent::__construct();
-                \$this->load->model('$model_name');
-            }
-        $uniqueMethods
-        $ajaxFunction
+        public function __construct(){
+            parent::__construct();
+            \$this->load->model('$model_name');
         }
-        EOD;
+    $uniqueMethods
+    $ajaxFunction
+    }
+    EOD;
+        // echo '<pre>' . htmlspecialchars($controller) . '</pre>'; exit;
 
         $module_folder = $folder . '/controllers/';
         $full_module_path = FCPATH . $module_folder;
@@ -685,7 +733,7 @@
         foreach ($fields as $field) {
             $column_name = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
             $label = ucfirst(trim($field['label_name']));
-            if (strtolower($field['is_required']) === 'Yes') {
+            if (strtolower($field['is_required']) === 'yes') {
                 $validationRules[] = "\$this->form_validation->set_rules('$column_name', '$label', 'required');";
             }
         }
@@ -795,43 +843,65 @@
         return $folder . $file_name;
     }
 
-    public function create_model_file($folder, $module_name_used, $model_name, $created_table_name, $fields){
+    public function create_model_file($folder, $module_name_used, $model_name, $created_table_name, $fields) {
         $dataFields = [];
         $searchableFields = [];
+        $selectFields = ["$created_table_name.*"];
+        $joins = [];
         $first = true;
+
         foreach ($fields as $field) {
             $column_name = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
-            $label_name = $field['label_name'];
             $dataFields[] = "            '$column_name' => \$this->input->post('$column_name')";
 
-            if (in_array(strtolower($field['data_type']), ['text', 'textarea', 'email'])) {
-                if ($first) {
-                    $searchableFields[] = "                \$this->db->like('$created_table_name.$column_name', \$search);";
-                    $first = false;
-                } else {
-                    $searchableFields[] = "                \$this->db->or_like('$created_table_name.$column_name', \$search);";
-                }
+            $isTextType = in_array(strtolower($field['data_type']), ['text', 'textarea', 'email']);
+            $dep_module_id = $field['dependent_module'] ?? null;
+            $dep_field_id = $field['dependent_module_field'] ?? null;
+
+            if (!empty($dep_module_id) && !empty($dep_field_id)) {
+                $ref_table = $this->get_table_name_by_module_id($dep_module_id);
+                $ref_column = $this->get_column_name_by_field_id($dep_field_id);
+                $join_alias = "ref_{$column_name}";
+
+                $joins[$join_alias] = [
+                    'table' => $ref_table,
+                    'alias' => $join_alias,
+                    'on' => "$join_alias.id = $created_table_name.$column_name"
+                ];
+
+                $selectFields[] = "$join_alias.$ref_column AS {$join_alias}_{$ref_column}";
+                $searchableFields[] = "                \$this->db->" . ($first ? "like" : "or_like") . "('$join_alias.$ref_column', \$search);";
+            } else {
+                $searchableFields[] = "                \$this->db->" . ($first ? "like" : "or_like") . "('$created_table_name.$column_name', \$search);";
             }
+            $first = false;
         }
+
         $dataString = implode(",\n", $dataFields);
+        $selectString = implode(",\n            ", $selectFields);
 
         $uniqueFunctions = '';
         foreach ($fields as $field) {
-            if (strtolower($field['is_unique']) === 'Yes') {
+            if (strtolower($field['is_unique']) === 'yes') {
                 $column_name = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name'])));
                 $uniqueFunctions .= <<<EOD
 
-        public function get_unique_{$column_name}(){
-            \$this->db->where('$column_name', \$this->input->post('$column_name'));
-            if(\$this->input->post('id') != "0" && \$this->input->post('id') != ""){
-                \$this->db->where('id !=', \$this->input->post('id'));
+            public function get_unique_{$column_name}(){
+                \$this->db->where('$column_name', \$this->input->post('$column_name'));
+                if(\$this->input->post('id') != "0" && \$this->input->post('id') != ""){
+                    \$this->db->where('id !=', \$this->input->post('id'));
+                }
+                \$this->db->where('is_deleted', '0');
+                \$result = \$this->db->get('$created_table_name');
+                echo \$result->num_rows();
             }
-            \$this->db->where('is_deleted', '0');
-            \$result = \$this->db->get('$created_table_name');
-            echo \$result->num_rows();
+        EOD;
+            }
         }
-    EOD;
-            }
+
+        $joinString = '';
+        foreach ($joins as $j) {
+            $joinString .= "        \$this->db->join('{$j['table']} as {$j['alias']}', '{$j['on']}', 'left');\n";
         }
 
         $searchCondition = '';
@@ -867,9 +937,18 @@
         }
 
         public function get_all_$module_name_used(){
-            \$this->db->where('is_deleted', '0');
-            \$this->db->order_by('id', 'DESC');
+            \$this->db->select(
+                $selectString
+            );
+    $joinString        \$this->db->where('$created_table_name.is_deleted', '0');
+            \$this->db->order_by('$created_table_name.id', 'DESC');
             \$result = \$this->db->get('$created_table_name');
+            return \$result->result();
+        }
+            
+        public function get_dependent_data_all(\$table_name){
+            \$this->db->where('is_deleted', '0');
+            \$result = \$this->db->get(\$table_name);
             return \$result->result();
         }
 
@@ -882,7 +961,10 @@
     $uniqueFunctions
 
         public function get_all_{$module_name_used}_ajax(\$length, \$start, \$search){
-            \$this->db->where('$created_table_name.is_deleted', '0');
+            \$this->db->select(
+                $selectString
+            );
+    $joinString        \$this->db->where('$created_table_name.is_deleted', '0');
     EOD;
 
         foreach ($fields as $field) {
@@ -901,7 +983,7 @@
         }
 
         public function get_all_{$module_name_used}_count_ajax(\$search){
-            \$this->db->where('$created_table_name.is_deleted', '0');
+    $joinString        \$this->db->where('$created_table_name.is_deleted', '0');
     EOD;
 
         foreach ($fields as $field) {
@@ -919,6 +1001,7 @@
 
     }
     EOD;
+        // echo '<pre>' . htmlspecialchars($model) . '</pre>'; exit;
 
         $module_folder = $folder . '/model/';
         $full_module_path = FCPATH . $module_folder;
@@ -933,6 +1016,16 @@
         return $folder . $file_name;
     }
 
+    private function get_table_name_by_module_id($module_id) {
+        $query = $this->db->get_where('tbl_modules', ['id' => $module_id]);
+        return $query->num_rows() > 0 ? $query->row()->created_table_name : null;
+    }
+
+    private function get_column_name_by_field_id($field_id) {
+        $query = $this->db->get_where('tbl_module_fields', ['id' => $field_id]);
+        return $query->num_rows() > 0 ? $query->row()->column_name : null;
+    }
+
     private function map_data_type($input_type, $length){
         switch ($input_type) {
             case 'text':
@@ -944,6 +1037,8 @@
             case 'file':
             case 'dropdown':
                 return "VARCHAR($length)";
+            case 'dropdown-dependent':
+                return "INT($length)";
             case 'number':
             case 'range':
                 return "INT($length)";
