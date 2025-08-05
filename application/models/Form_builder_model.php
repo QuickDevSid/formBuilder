@@ -846,7 +846,7 @@
     public function create_model_file($folder, $module_name_used, $model_name, $created_table_name, $fields) {
         $dataFields = [];
         $searchableFields = [];
-        $selectFields = ["$created_table_name.*"];
+        $selectFields = ["'$created_table_name.*'"];
         $joins = [];
         $first = true;
 
@@ -869,7 +869,7 @@
                     'on' => "$join_alias.id = $created_table_name.$column_name"
                 ];
 
-                $selectFields[] = "$join_alias.$ref_column AS {$join_alias}_{$ref_column}";
+                $selectFields[] = "`$join_alias`.`$ref_column` AS {$join_alias}_{$ref_column}";
                 $searchableFields[] = "                \$this->db->" . ($first ? "like" : "or_like") . "('$join_alias.$ref_column', \$search);";
             } else {
                 $searchableFields[] = "                \$this->db->" . ($first ? "like" : "or_like") . "('$created_table_name.$column_name', \$search);";
