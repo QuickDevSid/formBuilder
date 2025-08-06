@@ -1,1 +1,1 @@
-ALTER TABLE `tbl_module_fields` ADD `is_required` VARCHAR(5) NULL DEFAULT NULL AFTER `is_unique`;
+ALTER TABLE `tbl_module_fields` ADD `values` TEXT NULL DEFAULT NULL COMMENT 'comma seperated values (consider only for dropdown field)' AFTER `field_type`;
