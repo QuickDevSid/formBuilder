@@ -40,6 +40,7 @@
                                             <th>Label Name <b style="color:red;">*</b></th>
                                             <th>Field Type <b style="color:red;">*</b></th>
                                             <th>Length <b style="color:red;">*</b></th>
+                                            <th>Values <br><small>(Enter comma seperated values)</small></th>
                                             <th>Is Required? <b style="color:red;">*</b></th>
                                             <th>Handle Unique? <b style="color:red;">*</b></th>
                                             <th>Dependent Module</th>
@@ -89,7 +90,7 @@
                     <input type="text" name="fields[${index}][label_name]" class="form-control label_name" required>
                 </td>
                 <td>
-                    <select name="fields[${index}][data_type]" class="form-control data_type chosen-select" required>
+                    <select name="fields[${index}][data_type]" class="form-control data_type chosen-select" data-index="${index}" required>
                         <option value="">Select Field Type</option>
                         <option value="text">Text</option>
                         <option value="number">Number</option>
@@ -99,20 +100,23 @@
                         <option value="date">Date</option>
                         <option value="time">Time</option>
                         <option value="datetime">Date & Time</option>
-                        <option value="checkbox">Checkbox</option>
-                        <option value="radio">Radio Button</option>
                         <option value="file">File Upload</option>
                         <option value="url">URL</option>
                         <option value="color">Color Picker</option>
                         <option value="range">Range Slider</option>
-                        <option disabled value="hidden">Hidden</option>
                         <option value="dropdown">Dropdown</option>
                         <option value="dropdown-dependent">Dependent Dropdown</option>
                         <option value="textarea">Textarea</option>
+                        <option disabled value="checkbox">Checkbox</option>
+                        <option disabled value="radio">Radio Button</option>
+                        <option disabled value="hidden">Hidden</option>
                     </select>
                 </td>
                 <td>
                     <input type="number" name="fields[${index}][length]" class="form-control length" min="1" required>
+                </td>
+                <td>
+                    <textarea name="fields[${index}][values]" class="form-control values" disabled></textarea>
                 </td>
                 <td>
                     <select name="fields[${index}][is_required]" class="form-control is_required chosen-select" required>
@@ -263,6 +267,25 @@
                 });
             } else {
                 $fieldDropdown.rules("remove", "required");
+            }
+        });
+
+        $(document).on('change', '.data_type', function () {
+            let moduleId = $(this).val();
+            let index = $(this).data('index');
+            let $fieldInput = $(`textarea[name="fields[${index}][values]"]`);
+
+            if (moduleId === 'dropdown') {
+                $fieldInput.prop('disabled', false);
+                $fieldInput.rules("add", {
+                    required: true,
+                    messages: {
+                        required: "Please enter values!"
+                    }
+                });
+            } else {
+                $fieldInput.prop('disabled', true);
+                $fieldInput.rules("remove", "required");
             }
         });
     });

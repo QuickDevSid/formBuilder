@@ -55,6 +55,7 @@
                     'label'                                 =>  $field['label_name'],
                     'column_name'                           =>  strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', trim($field['label_name']))),
                     'field_type'                            =>  $field['data_type'],
+                    'values'                                =>  $field['data_type'] == 'dropdown' && $field['values'] != "" ? $field['values'] : null,
                     'length'                                =>  $field['length'],
                     'dependent_module_id'                   =>  !empty($dependent_module) ? $dependent_module->id : null,
                     'dependent_module_field_id'             =>  !empty($dependent_module)  && !empty($dependent_module_field) ? $dependent_module_field->id : null,
@@ -191,16 +192,23 @@
                     break;
 
                 case 'dropdown':
-                    $form_fields_html .= <<<EOD
-        <div class="form-group col-lg-4 col-md-4 col-sm-6 col-xs-12">
-            <label>{$label} {$required}</label>
-            <select class="form-control chosen-select" name="{$column}" id="{$column}">
-                <option value="">Select {$label}</option>
-                <!-- Add your options dynamically -->
-            </select>
-            <div class="error" id="{$error_id}"></div>
-        </div>
+        $values = explode(',', $field['values'] ?? '');
+        $form_fields_html .= <<<EOD
+            <div class="form-group col-lg-4 col-md-4 col-sm-6 col-xs-12">
+                <label>{$label} {$required}</label>
+                <select class="form-control chosen-select" name="{$column}" id="{$column}">
+                    <option value="">Select {$label}</option>\n
+        EOD;
 
+        foreach ($values as $value) {
+            $value = trim($value);
+            $form_fields_html .= "<option value=\"{$value}\" <?=!empty(\$single) && \$single->{$column} == '{$value}' ? 'selected' : ''; ?>>{$value}</option>" . PHP_EOL;
+        }
+
+        $form_fields_html .= <<<EOD
+                </select>
+                <div class="error" id="{$error_id}"></div>
+            </div>
     EOD;
                     break;
 
