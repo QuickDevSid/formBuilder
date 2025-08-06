@@ -96,11 +96,10 @@
                         <option value="number">Number</option>
                         <option value="email">Email</option>
                         <option value="password">Password</option>
-                        <option value="mobile">Mobile</option>
-                        <option value="date">Date</option>
-                        <option value="time">Time</option>
-                        <option value="datetime">Date & Time</option>
-                        <option value="file">File Upload</option>
+                        <option disabled value="date">Date</option>
+                        <option disabled value="time">Time</option>
+                        <option disabled value="datetime">Date & Time</option>
+                        <option disabled value="file">File Upload</option>
                         <option value="url">URL</option>
                         <option value="color">Color Picker</option>
                         <option value="range">Range Slider</option>
