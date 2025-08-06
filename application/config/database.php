@@ -76,12 +76,15 @@ $query_builder = TRUE;
 $db['default'] = array(
 	'dsn'	=> '',
 	'hostname' => 'localhost',
+
 	'username' => 'root',
 	'password' => '',
 	'database' => 'form_builder',
+
 	// 'username' => 'corpora3_corpo',
 	// 'password' => 'hmy01f;64UiU',
-	// 'database' => 'corpora3_jhs_orbit_dev',
+	// 'database' => 'corpora3_form_builder',
+	
 	'dbdriver' => 'mysqli',
 	'dbprefix' => '',
 	'pconnect' => FALSE,
