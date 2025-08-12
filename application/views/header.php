@@ -107,6 +107,39 @@
                     </span>
                     <span class="nav-content">Created Modules List</span>
                 </a>
+
+                <?php
+                    $modules = $this->Form_builder_model->get_project_modules('');
+                    if(!empty($modules)){
+                        foreach($modules as $modules_row){
+                            $module_name_used = strtolower(str_replace(' ', '_', $modules_row->module_name));
+                ?>
+                    <a href="<?= base_url(); ?><?=$module_name_used; ?>" class="menu-item active">
+                        <span class="nav-icons">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 20h9" stroke="#74798B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z" stroke="#74798B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                        <span class="nav-content"><?=$modules_row->module_name; ?></span>
+                    </a>
+                    <a href="<?= base_url(); ?><?=$module_name_used; ?>_list" class="menu-item active">
+                        <span class="nav-icons">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <line x1="8" y1="6" x2="21" y2="6" stroke="#74798B" stroke-width="2"/>
+                                <line x1="8" y1="12" x2="21" y2="12" stroke="#74798B" stroke-width="2"/>
+                                <line x1="8" y1="18" x2="21" y2="18" stroke="#74798B" stroke-width="2"/>
+                                <circle cx="3.5" cy="6" r="1.5" fill="#74798B"/>
+                                <circle cx="3.5" cy="12" r="1.5" fill="#74798B"/>
+                                <circle cx="3.5" cy="18" r="1.5" fill="#74798B"/>
+                            </svg>
+                        </span>
+                        <span class="nav-content"><?=$modules_row->module_name; ?> List</span>
+                    </a>
+                <?php
+                        }
+                    }
+                ?>
             </div>
         </div>       
    

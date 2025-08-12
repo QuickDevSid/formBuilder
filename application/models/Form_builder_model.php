@@ -39,10 +39,12 @@
             $module_creation_id = $this->db->insert_id();
 
             foreach($fields as $field){
-                $this->db->where('is_deleted', '0');
-                $this->db->where('id', $field['dependent_module']);
-                $dependent_module = $this->db->get('tbl_modules')->row();
-                
+                if(isset($field['dependent_module'])){
+                    $this->db->where('is_deleted', '0');
+                    $this->db->where('id', $field['dependent_module']);
+                    $dependent_module = $this->db->get('tbl_modules')->row();
+                }
+
                 if(!empty($dependent_module)){
                     $this->db->where('is_deleted', '0');
                     $this->db->where('id', $field['dependent_module_field']);
@@ -86,6 +88,51 @@
                 $zip->close();
             }
 
+            // Copy Files to Current Project Directory Start
+            $target_controller_path = APPPATH . 'controllers/' . $module_name_used . '/';
+            $target_model_path      = APPPATH . 'models/' . $module_name_used . '/';
+            $target_view_path       = APPPATH . 'views/' . $module_name_used . '/';
+            $target_js_path         = FCPATH . 'assets/js/modules/' . $module_name_used . '/';
+
+            $paths_to_create = [
+                $target_controller_path,
+                $target_model_path,
+                $target_view_path,
+                $target_js_path
+            ];
+
+            foreach ($paths_to_create as $path) {
+                if (!is_dir($path)) {
+                    mkdir($path, 0777, true);
+                }
+            }
+
+            $files = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($full_module_path),
+                RecursiveIteratorIterator::LEAVES_ONLY
+            );
+
+            foreach ($files as $name => $file) {
+                if (!$file->isDir()) {
+                    $filePath = $file->getRealPath();
+                    $relativePath = substr($filePath, strlen($full_module_path));
+
+                    if (strpos($relativePath, '_controller.php') !== false) {
+                        copy($filePath, $target_controller_path . basename($relativePath));
+
+                    } elseif (strpos($relativePath, '_model.php') !== false) {
+                        copy($filePath, $target_model_path . basename($relativePath));
+
+                    } elseif (strpos($relativePath, '.js') !== false) {
+                        copy($filePath, $target_js_path . basename($relativePath));
+
+                    } elseif (strpos($relativePath, '.php') !== false) {
+                        copy($filePath, $target_view_path . basename($relativePath));
+                    }
+                }
+            }
+            // Copy Files to Current Project Directory End
+
             function delete_folder_recursive($folder_path) {
                 $files = array_diff(scandir($folder_path), array('.', '..'));
                 foreach ($files as $file) {
@@ -113,6 +160,13 @@
     }
 
     public function create_form_view_file($folder, $model_name, $module_name_used, $fields){
+        $clean_module_name = trim($module_name_used);
+        $clean_module_name = str_replace('_', ' ', $clean_module_name);
+        $clean_module_name = ucwords($clean_module_name);
+
+        $export_columns = range(0, count($fields));
+        $export_columns_js_array = json_encode($export_columns);
+
         $form_fields_html = '';
         
         foreach ($fields as $field) {
@@ -271,17 +325,25 @@
         }
 
         $html = <<<EOD
-    <div class="right_col" role="main">
-        <div class="">
-            <div class="page-title">
-                <div class="title_left">
-                    <h3>Add {$module_name_used}</h3>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-                    <div class="x_panel">
-                        <div class="x_content">
+            <?php include(APPPATH . 'views/header.php'); ?>
+            <style type="text/css">
+                .error {
+                    color: red;
+                    float: left;
+                }
+                .chosen-container {
+                    font-size: 14px;
+                }
+            </style>
+            <div class="main-content" id="project-list">
+                <div class="container-fluid p-0">
+                    <div class="card p-4 mb-4">
+                        <div class="client-header">
+                            <div class="client-title">
+                                <h3 class="mb-3">Add {$clean_module_name}</h3>
+                            </div>
+                        </div>
+                        <div class="client-body p-3">
                             <form method="post" name="master_form" id="master_form" enctype="multipart/form-data">
                                 <input type="hidden" name="hidden_id" id="hidden_id" value="<?php if(!empty(\$single)){ echo \$single->id; }?>">
                                 <div class="row">
@@ -297,17 +359,19 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- External JS Includes -->
-    <script>
-        var BASE_URL = '<?=base_url(); ?>';
-        var formElement = 'master_form';
-        vart submitBtn = '{$module_name_used}_submit';
-    </script>
-    <script src="<?= base_url('assets/js/modules/{$module_name_used}_custom_js.js') ?>"></script>
-    EOD;
+            <?php include(APPPATH . 'views/footer.php'); ?>
+            <!-- External JS Includes -->
+            <script>
+                var BASE_URL = '<?=base_url(); ?>';
+                var formElement = 'master_form';
+                var tableElement = 'example';
+                var fileName = '{$module_name_used}-list';
+                var submitBtn = '{$module_name_used}_submit';
+                var exportColumns = {$export_columns_js_array};
+            </script>
+            <script src="<?= base_url('assets/js/modules/{$module_name_used}/custom_js.js') ?>"></script>
+            EOD;
         // echo '<pre>' . htmlspecialchars($html) . '</pre>'; exit;
 
         $module_folder = $folder . '/views/';
@@ -324,6 +388,10 @@
     }
 
     public function create_list_view_file($folder, $module_name_used, $fields){
+        $clean_module_name = trim($module_name_used);
+        $clean_module_name = str_replace('_', ' ', $clean_module_name);
+        $clean_module_name = ucwords($clean_module_name);
+
         $export_columns = range(0, count($fields));
         $export_columns_js_array = json_encode($export_columns);
 
@@ -339,18 +407,25 @@
         }
 
         $html = <<<EOD
-        <div class="right_col" role="main">
-            <div class="">
-                <div class="page-title">
-                    <div class="title_left">
-                        <h3>{$module_name_used} List</h3>
-                    </div>
-                </div>
-                <div class="clearfix"></div>
-                <div class="row">
-                    <div class="col-md-12 col-sm-12 col-xs-12">
-                        <div class="x_panel">
-                            <div class="x_content">
+            <?php include(APPPATH . 'views/header.php'); ?>
+            <style type="text/css">
+                .error {
+                    color: red;
+                    float: left;
+                }
+                .chosen-container {
+                    font-size: 14px;
+                }
+            </style>
+            <div class="main-content" id="project-list">
+                <div class="container-fluid p-0">
+                    <div class="card p-4 mb-4">
+                        <div class="client-header">
+                            <div class="client-title">
+                                <h3 class="mb-3">{$clean_module_name} List</h3>
+                            </div>
+                        </div>
+                        <div class="client-body p-3">
                                 <table class="table table-striped responsive-utilities jambo_table" style="width: 100%;" id="example">
                                     <thead>
                                         <tr>
@@ -368,17 +443,19 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- External JS Includes -->
-        <script>
-            var BASE_URL = '<?=base_url(); ?>';
-            var tableElement = 'example';
-            var fileName = '{$module_name_used}-list';
-            var exportColumns = {$export_columns_js_array};
-        </script>
-        <script src="<?= base_url('assets/js/modules/{$module_name_used}_custom_js.js') ?>"></script>
-        EOD;
+            <?php include(APPPATH . 'views/footer.php'); ?>
+            <!-- External JS Includes -->
+            <script>
+                var BASE_URL = '<?=base_url(); ?>';
+                var formElement = 'master_form';
+                var tableElement = 'example';
+                var fileName = '{$module_name_used}-list';
+                var submitBtn = '{$module_name_used}_submit';
+                var exportColumns = {$export_columns_js_array};
+            </script>
+            <script src="<?= base_url('assets/js/modules/{$module_name_used}/custom_js.js') ?>"></script>
+            EOD;
         // echo '<pre>' . htmlspecialchars($html) . '</pre>'; exit;
 
         $module_folder = $folder . '/views/';
@@ -417,7 +494,7 @@
                     $('#{$column}').on('keyup change', function () {
                         $.ajax({
                             type: "POST",
-                            url: BASE_URL + "{$ajax_url_path}/get_unique_{$column}",
+                            url: BASE_URL + "{$module_name_used}/{$ajax_url_path}/get_unique_{$column}",
                             data: {
                                 '{$column}': $('#{$column}').val(),
                                 id: $('#hidden_id').val() || ''
@@ -507,7 +584,7 @@
                 dom: "Blfrtip",
                 scrollX: true,
                 ajax: {
-                    url: BASE_URL + "{$ajax_url_path}/get_{$module_name_used}_data_ajx",
+                    url: BASE_URL + "{$module_name_used}/{$ajax_url_path}/get_{$module_name_used}_data_ajx",
                     type: "POST",
                     data: function (d) {}
                 },
@@ -553,7 +630,7 @@
             mkdir($full_js_path, 0777, true);
         }
 
-        $file_name = $module_name_used . '_custom_js.js';
+        $file_name = 'custom_js.js';
         $file_path = $full_js_path . $file_name;
         file_put_contents($file_path, $js);
 
@@ -638,7 +715,7 @@
                 \$start = intval(\$this->input->post("start"));
                 \$length = intval(\$this->input->post("length"));
                 \$order = \$this->input->post("order");
-                \$search = \$this->input->post("search") != "" ? \$this->input->post("search") : (isset(\$search['value']) ? \$search['value'] : '');
+                \$search = isset(\$this->input->post("search")['value']) ? \$this->input->post("search")['value'] : null;
                 \$col = 0;
                 \$dir = "";
                 if(!empty(\$order)){
@@ -659,6 +736,7 @@
                     \$offset = (\$page - 1) * \$length + 1;
                     foreach(\$records as \$print){
                         \$sub_array = array();
+                        \$sub_array[] = \$offset++;
     EOD;
 
         foreach ($fields as $field) {
@@ -715,7 +793,7 @@
 
         public function __construct(){
             parent::__construct();
-            \$this->load->model('$model_name');
+            \$this->load->model('$module_name_used/$model_name');
         }
     $uniqueMethods
     $ajaxFunction
@@ -755,7 +833,7 @@
 
         public function __construct(){
             parent::__construct();
-            \$this->load->model('$model_name');
+            \$this->load->model('$module_name_used/$model_name');
             \$this->load->library('form_validation');
         }
 
@@ -765,7 +843,7 @@
             if (\$this->form_validation->run() === FALSE) {
                 \$data['{$module_name_used}_list'] = \$this->{$model_name}->get_all_{$module_name_used}();
                 \$data['single'] = \$this->{$model_name}->get_single_{$module_name_used}();
-                \$this->load->view('$module_name_used', \$data);
+                \$this->load->view('$module_name_used/{$module_name_used}_form', \$data);
             } else {
                 \$result = \$this->{$model_name}->add_{$module_name_used}();
 
@@ -781,7 +859,7 @@
 
         public function {$module_name_used}_list() {
             \$data['{$module_name_used}_list'] = \$this->{$model_name}->get_all_{$module_name_used}();
-            \$this->load->view('{$module_name_used}_list', \$data);
+            \$this->load->view('$module_name_used/{$module_name_used}_list', \$data);
         }
     }
     EOD;
@@ -848,6 +926,9 @@
         $file_name = $table_name . '.sql';
         $file_path = FCPATH . $module_folder . $file_name;
         file_put_contents($file_path, $sql);
+        
+        $this->db->query($sql);
+
         return $folder . $file_name;
     }
 
